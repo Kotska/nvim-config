@@ -1,0 +1,141 @@
+{
+  "Console log": {
+    "prefix": "log",
+    "scope": "javascript",
+    "body": "console.log($1)"
+  },
+  "Custom post type": {
+    "prefix": "cpt",
+    "scope": "php",
+    "body": [
+      "function create_post_types() {",
+      "\tregister_post_type( '$1',",
+      "\tarray(",
+      "\t\t'labels' => array(",
+      "\t\t 'name' => __( '$1' ),",
+      "\t\t 'singular_name' => __( '$1' )",
+      "\t\t),",
+      "\t\t'public' => true,",
+      "\t\t'has_archive' => false,",
+      "\t\t'rewrite' => array('slug' => '$1'),",
+      "\t )",
+      "\t);",
+      "\\}",
+      "add_action( 'init', 'create_post_types' );"
+    ]
+  },
+  "Hide scrollbar": {
+    "prefix": "scrollhide",
+    "description": "Hide scrollbar",
+    "scope": "css, scss, sass",
+    "body": [
+      "-ms-overflow-style: none;",
+      "scrollbar-width: none;"
+    ]
+  },
+  "Media Query Max": {
+    "prefix": "@mdx",
+    "description": "Media Query for css rules",
+    "scope": "css, scss, sass",
+    "body": "@media screen and (max-width: $1 ) {$2\\}"
+  },
+  "Media Query Min": {
+    "prefix": "@md",
+    "description": "Media Query for css rules",
+    "scope": "css, scss, sass",
+    "body": "@media screen and (min-width: $1 ) {$2\\}"
+  },
+  "Ob error log": {
+    "prefix": "oblog",
+    "scope": "php",
+    "body": [
+      "ob_start();",
+      "var_dump($1);",
+      "\\$res = ob_get_clean();",
+      "error_log(\\$res);"
+    ]
+  },
+  "Open/close php tag with echo": {
+    "prefix": "@peco",
+    "description": "For quick php echo",
+    "scope": "php, html",
+    "body": "<?php echo $1 ?>"
+  },
+  "Retina image css": {
+    "prefix": "@retina",
+    "scope": "css, scss, sass",
+    "body": "background-image: image-set( url('$1') 1x, url('$2') 2x);"
+  },
+  "Swiper php": {
+    "prefix": "swiper",
+    "scope": "php, html",
+    "body": [
+      "<div class='swiper'>",
+      "<div class='swiper-wrapper'>",
+      "\t<?php foreach($1 as $2): ?>",
+      "\t\t<div class='swiper-slide'></div>",
+      "\t<?php endforeach; ?>",
+      "</div>",
+      "<div class='swiper-pagination'></div>",
+      "<div class='swiper-button-prev'></div>",
+      "<div class='swiper-button-next'></div>",
+      "</div>"
+    ]
+  },
+  "ajax": {
+    "prefix": "ajax",
+    "scope": "php",
+    "body": [
+      "add_action( 'wp_ajax_nopriv_get_data', '$1' );",
+      "add_action( 'wp_ajax_get_data', '$1' );",
+      "function $1() {",
+      "$2",
+      "\\}"
+    ]
+  },
+  "bgsize": {
+    "prefix": "bgsize",
+    "scope": "css",
+    "body": [
+      "background-size: cover;",
+      "background-position: center;",
+      "background-repeat: no-repeat;"
+    ]
+  },
+  "bgsrc": {
+    "prefix": "bgsrc",
+    "scope": "css",
+    "body": [
+      "background-image: url('$1');",
+      "background-image: image-set(url('$1') 1x,",
+      "url('$1') 2x);"
+    ]
+  },
+  "foreach": {
+    "prefix": "for",
+    "scope": "php, html",
+    "body": [
+      "<?php foreach($1) : ?>",
+      "\t$2",
+      "<?php endforeach; ?>"
+    ]
+  },
+  "if": {
+    "prefix": "if",
+    "scope": "php, html",
+    "body": [
+      "<?php if ($1) { ?>",
+      "\t$TM_SELECTED_TEXT",
+      "<?php \\} ?>"
+    ]
+  },
+  "ifempty": {
+    "prefix": "ifempty",
+    "scope": "php, html",
+    "body": [
+      "<?php if(!empty($1)): ?>",
+      "$1",
+      "<?php endif; ?>"
+    ]
+  }
+}
