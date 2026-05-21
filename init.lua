@@ -1,5 +1,5 @@
 vim.o.shellcmdflag = "-ic"
-vim.o.shortmess = "filnxtToOF"
+vim.o.shortmess = "filnxtToOFS"
 vim.o.winborder = "rounded"
 vim.o.showmode = false
 vim.o.number = true
@@ -21,10 +21,14 @@ vim.o.cursorline = true
 vim.o.scrolloff = 8
 vim.o.background = "dark"
 vim.o.backupcopy = "yes"
+vim.o.autoindent = true
 vim.o.termguicolors = true
 vim.o.laststatus = 3
+vim.g.mason_node_path = "/usr/bin/node"
+vim.g.emmet_html_php = 1
 local initlua = vim.fn.stdpath('config') .. '/init.lua'
 
+vim.keymap.set("n", "<leader>o", "_f:<right>ct;<space>")
 vim.keymap.set("n", "<leader>ls", vim.lsp.buf.document_symbol, { desc = "LSP document symbols" })
 vim.keymap.set('n', '<leader>so', ':update<cr> :so<cr>', { desc = "Source current config file" })
 vim.keymap.set('n', '<leader>sv', ':luafile ' .. initlua .. '<cr>', { desc = "Source config file" })
@@ -34,6 +38,7 @@ vim.keymap.set('v', '<C-_>', 'gc', { remap = true })
 vim.keymap.set('i', 'jk', '<esc>')
 vim.keymap.set('n', '<Tab>', ':bnext<cr>')
 vim.keymap.set('n', '<S-Tab>', ':bprev<cr>')
+vim.keymap.set('n', '<CR>', 'o<Esc>')
 vim.keymap.set('n', '<leader>bd', ':bdelete<cr>')
 vim.keymap.set("n", "<leader>t", function()
   local file = vim.api.nvim_buf_get_name(0)
@@ -58,6 +63,7 @@ vim.pack.add({
   { src = "https://github.com/rcarriga/nvim-notify" },
   { src = "https://github.com/folke/noice.nvim" },
 
+  { src = "https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim" },
   { src = "https://github.com/rmagatti/auto-session" },
   { src = "https://github.com/smjonas/snippet-converter.nvim" },
   { src = "https://github.com/rafamadriz/friendly-snippets" },
@@ -93,10 +99,22 @@ vim.pack.add({
   { src = "https://github.com/saadparwaiz1/cmp_luasnip" },
   { src = "https://github.com/MeanderingProgrammer/render-markdown.nvim" },
   { src = "https://github.com/stevearc/aerial.nvim" },
+  { src = "https://github.com/mattn/emmet-vim" },
 })
 
 vim.cmd("colorscheme nightmare")
 -- vim.cmd("colorscheme spaceduck")
+--
+
+require('mason-tool-installer').setup({
+  ensure_installed = {
+    { 'gopls', condition = function() return vim.fn.executable('go') == 1 end },
+    "lua-language-server",
+    "typescript-language-server",
+    "intelephense",
+    "emmet-ls",
+  }
+})
 
 require("bufferline").setup {}
 require("notify").setup({
@@ -194,6 +212,25 @@ require("luasnip.loaders.from_vscode").lazy_load({
 local ls = require("luasnip")
 
 require('lualine').setup({
+  sections = {
+    lualine_x = {
+      'encoding',
+      'fileformat',
+      'filetype',
+      {
+        function()
+          local count = vim.fn.searchcount { recompute = 1, maxcount = 0 }
+          if not count or count.total == 0 then return '' end
+          local cur = count.current > 0 and tostring(count.current) or '?'
+          return string.format('%s [%s/%d]', vim.fn.getreg('/'), cur, count.total)
+        end,
+        cond = function()
+          local count = vim.fn.searchcount { recompute = 1, maxcount = 0 }
+          return count and count.total > 0
+        end,
+      },
+    },
+  },
 })
 vim.api.nvim_set_keymap('n', 'W', '<cmd>lua vim.diagnostic.open_float()<CR>', { noremap = true, silent = true })
 
@@ -259,6 +296,9 @@ end, { desc = "Open file picker" })
 vim.keymap.set("n", "<leader>fy", function()
   vim.cmd("let @+ = expand('%:p')")
 end, { desc = "Copy current file path" })
+vim.keymap.set("n", "<leader>fe", function()
+  vim.cmd("echo expand('%:p')")
+end, { desc = "Print current filepath" })
 vim.keymap.set("n", "<leader>fg", function()
   MiniPick.builtin.grep_live()
 end, { desc = "Live grep" })
@@ -310,7 +350,13 @@ wk.add({
 
 vim.keymap.set({ "n", "v" }, '<leader>sr', ':GrugFar<cr>', { desc = "Search/Replace" })
 
-require "nvim-treesitter".setup {}
+require "nvim-treesitter".setup {
+  ensure_installed = { "php", "html", "css", "javascript", "typescript" },
+  indent = {
+    enable = true,
+    disable = { "php" },
+  },
+}
 require("nvim-treesitter-textobjects").setup {
   select = {
     -- Automatically jump forward to textobj, similar to targets.vim
@@ -365,7 +411,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
-vim.lsp.enable({ "lua_ls", "intelephense", "ts_ls", "gopls", "goimports" })
+vim.lsp.enable({ "lua_ls", "intelephense", "ts_ls", "gopls", "goimports", "emmet_ls" })
 
 vim.lsp.config("intelephense", {
   settings = {
@@ -386,6 +432,14 @@ vim.lsp.config("intelephense", {
         "wordpress",
       },
     },
+    files = {
+      associations = {"*.php", "*.html"}
+    },
+    completion = {
+      insertUseDeclaration = true,
+      fullyQualifyGlobalConstantsAndFunctions = true,
+      triggerParameterHints = true,
+    },
   },
 })
 
@@ -397,6 +451,11 @@ vim.lsp.config("lua_ls", {
       }
     }
   }
+})
+
+vim.lsp.config("emmet_ls", {
+  cmd = { "emmet_ls", "--stdio" },
+  filetypes = {"php", "html", "css", "javascriptreact", "typescriptreact"}
 })
 
 vim.lsp.config("goimports", {
@@ -451,6 +510,14 @@ require("noice").setup({
       },
       view = "mini",
     },
+    -- search_count suppressed via shortmess+=S, shown in lualine
+    -- {
+    --   filter = {
+    --     event = "msg_show",
+    --     kind = "search_count",
+    --   },
+    --   opts = { skip = true },
+    -- },
   },
   lsp = {
     -- override markdown rendering so that **cmp** and other plugins use **Treesitter**
@@ -489,6 +556,13 @@ cmp.setup({
       vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<CR>", true, false, true), "n", false)
     end, { 'i', 's' }),
     ['<Tab>'] = cmp.mapping(function(fallback)
+      if vim.fn['emmet#isExpandable']() > 0 then
+        vim.api.nvim_feedkeys(
+          vim.api.nvim_replace_termcodes('<Plug>(emmet-expand-abbr)', true, false, true),
+          'n', true
+        )
+        return
+      end
       if cmp.visible() then
         cmp.select_next_item()
       elseif luasnip.expand_or_jumpable() then
