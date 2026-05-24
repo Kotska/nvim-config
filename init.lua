@@ -113,7 +113,7 @@ vim.pack.add({
   { src = "https://github.com/nvim-mini/mini.icons" },
   { src = "https://github.com/nvim-mini/mini.files" },
   { src = "https://github.com/nvim-mini/mini.pick" },
-  { src = "https://github.com/nvim-mini/mini.pairs" },
+  { src = "https://github.com/windwp/nvim-autopairs" },
   { src = "https://github.com/nvim-mini/mini.extra" },
   { src = "https://github.com/jiaoshijie/undotree" },
   { src = "https://github.com/folke/ts-comments.nvim" },
@@ -295,7 +295,7 @@ require "mason".setup()
 --   respect_scrolloff = true,
 -- })
 
-require('mini.pairs').setup()
+require('nvim-autopairs').setup{}
 require('mini.files').setup({
   mappings = {
     synchronize = '<C-s>',
@@ -722,8 +722,12 @@ cmp.setup({
     ['<C-f>'] = cmp.mapping.scroll_docs(4),
     ['<C-Space>'] = cmp.mapping.complete(),
     --     ['<C-e>'] = cmp.mapping.abort(),
-    ['<CR>'] = cmp.mapping(function()
-      vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<CR>", true, false, true), "n", false)
+    ['<CR>'] = cmp.mapping(function(fallback)
+      if cmp.visible() then
+        cmp.confirm({ select = true })
+      else
+        fallback()
+      end
     end, { 'i', 's' }),
     ['<Tab>'] = cmp.mapping(function(fallback)
       if vim.fn['emmet#isExpandable']() > 0 then
