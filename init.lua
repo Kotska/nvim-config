@@ -36,10 +36,53 @@ vim.keymap.set('n', '<C-s>', ':write<cr>')
 vim.keymap.set('n', '<C-_>', 'gcc', { remap = true })
 vim.keymap.set('v', '<C-_>', 'gc', { remap = true })
 vim.keymap.set('i', 'jk', '<esc>')
-vim.keymap.set('n', '<Tab>', ':bnext<cr>')
-vim.keymap.set('n', '<S-Tab>', ':bprev<cr>')
+local function buf_skip_visible(direction)
+  local visible = {}
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    visible[vim.api.nvim_win_get_buf(win)] = true
+  end
+
+  local listed = vim.fn.getbufinfo({ buflisted = 1 })
+  for _ = 1, #listed do
+    if direction == "next" then vim.cmd("bnext") else vim.cmd("bprev") end
+    if not visible[vim.api.nvim_get_current_buf()] then return end
+  end
+end
+
+vim.keymap.set('n', '<Tab>', function() buf_skip_visible("next") end)
+vim.keymap.set('n', '<S-Tab>', function() buf_skip_visible("prev") end)
 vim.keymap.set('n', '<CR>', 'o<Esc>')
-vim.keymap.set('n', '<leader>bd', ':bdelete<cr>')
+local function buf_delete_skip_visible()
+  local bufnr = vim.api.nvim_get_current_buf()
+
+  local win_count = 0
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.api.nvim_win_get_buf(win) == bufnr then win_count = win_count + 1 end
+  end
+
+  if win_count == 1 then
+    local visible = {}
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      visible[vim.api.nvim_win_get_buf(win)] = true
+    end
+    visible[bufnr] = nil
+
+    local listed = vim.fn.getbufinfo({ buflisted = 1 })
+    for _ = 1, #listed do
+      vim.cmd("bnext")
+      local newbuf = vim.api.nvim_get_current_buf()
+      if newbuf ~= bufnr and not visible[newbuf] then
+        break
+      end
+    end
+  end
+
+  if vim.api.nvim_buf_is_valid(bufnr) then
+    vim.cmd("bdelete " .. bufnr)
+  end
+end
+
+vim.keymap.set('n', '<leader>bd', buf_delete_skip_visible)
 vim.keymap.set("n", "<leader>t", function()
   local file = vim.api.nvim_buf_get_name(0)
   local dir
@@ -100,6 +143,8 @@ vim.pack.add({
   { src = "https://github.com/MeanderingProgrammer/render-markdown.nvim" },
   { src = "https://github.com/stevearc/aerial.nvim" },
   { src = "https://github.com/mattn/emmet-vim" },
+  { src = "https://github.com/windwp/nvim-ts-autotag" },
+  { src = "https://github.com/nickjvandyke/opencode.nvim" },
 })
 
 vim.cmd("colorscheme nightmare")
@@ -112,7 +157,6 @@ require('mason-tool-installer').setup({
     "lua-language-server",
     "typescript-language-server",
     "intelephense",
-    "emmet-ls",
   }
 })
 
@@ -143,6 +187,15 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.keymap.set('n', 'q', function()
       require('notify').dismiss({ pending = true, silent = true })
     end, { buffer = true, desc = 'Dismiss notification' })
+  end,
+})
+
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'php',
+  callback = function()
+    vim.bo.autoindent = true
+    vim.b.did_indent = true
+    vim.bo.indentexpr = "nvim-treesitter#indent()"
   end,
 })
 
@@ -310,10 +363,122 @@ vim.keymap.set("n", "<leader>fc", function()
 end, { desc = "Open picker for current directory" })
 vim.keymap.set('n', '<C-e>', ":Pick buffers<cr>", { desc = "Pick buffer" })
 
+local function get_sshfs_info(path)
+  local f = io.open("/proc/mounts", "r")
+  if not f then return nil end
+
+  local mounts = {}
+  for line in f:lines() do
+    local device, mount_point, fstype = line:match("^(%S+) (%S+) (%S+)")
+    if fstype == "fuse.sshfs" or (fstype == "fuseblk" and (device:match("@") or device:match("^[^:]+:"))) then
+      local user, host, remote_path = device:match("^([^@]+)@([^:]+):(.*)$")
+      if not user then
+        host, remote_path = device:match("^([^:]+):(.*)$")
+      end
+      if host then
+        local full_host = user and (user .. "@" .. host) or host
+        table.insert(mounts, {
+          mount_point = mount_point,
+          full_host = full_host,
+          host = host,
+          user = user,
+          remote_path = remote_path or "",
+        })
+      end
+    end
+  end
+  f:close()
+
+  table.sort(mounts, function(a, b)
+    return #a.mount_point > #b.mount_point
+  end)
+
+  for _, m in ipairs(mounts) do
+    if path == m.mount_point or path:sub(1, #m.mount_point + 1) == m.mount_point .. "/" then
+      return m
+    end
+  end
+  return nil
+end
+
 vim.keymap.set('n', '<leader>fd', function()
-  local fd_results = vim.fn.systemlist({ "fdfind", "--hidden", "--exclude", ".git" })
-  MiniPick.start({ source = { items = fd_results, name = "Files (fd)" } })
-end, { desc = "Search for file" })
+  local cwd = vim.fn.getcwd()
+  local sshfs = get_sshfs_info(cwd)
+
+  if sshfs then
+    local pattern = vim.fn.input("Remote file pattern: ")
+    if pattern == "" then return end
+
+    local notify = require("notify")
+    notify("Searching for " .. pattern .. " on " .. sshfs.host .. "...", "info", { timeout = false })
+
+    local rel_path = cwd == sshfs.mount_point and "" or cwd:sub(#sshfs.mount_point + 2)
+    local remote_dir = sshfs.remote_path .. (rel_path ~= "" and "/" .. rel_path or "")
+    local scaped = vim.fn.shellescape
+    local cd_cmd = "cd " .. scaped(remote_dir)
+    local alt = remote_dir:gsub("^/", "")
+    if alt ~= remote_dir then
+      cd_cmd = "{ " .. cd_cmd .. " 2>/dev/null || cd " .. scaped(alt) .. "; }"
+    end
+    local shell_cmd = cd_cmd .. " && fd --hidden --exclude .git -- " .. scaped(pattern)
+
+    vim.system({ "ssh", sshfs.full_host, shell_cmd }, { text = true }, function(result)
+      vim.schedule(function()
+        notify.dismiss({ pending = true, silent = true })
+
+        if result.code ~= 0 then
+          local err_lines = vim.split(result.stderr or "", "\n", { plain = true, trimempty = true })
+          local clean_err = vim.tbl_filter(function(l)
+            return not l:match("^%*%*")
+          end, err_lines)
+          local msg = #clean_err > 0 and table.concat(clean_err, "\n") or "remote command failed"
+          vim.notify("Remote search failed: " .. msg, "error")
+          return
+        end
+
+        local lines = vim.split(result.stdout, "\n", { plain = true, trimempty = true })
+        if #lines == 0 then
+          vim.notify("No matches for '" .. pattern .. "' on " .. sshfs.host, "warn")
+          return
+        end
+
+        for i, l in ipairs(lines) do
+          if l:sub(1, 1) ~= "/" then
+            lines[i] = cwd .. "/" .. l
+          end
+        end
+
+        MiniPick.start({ source = { items = lines, name = "Files (" .. sshfs.host .. ")" } })
+      end)
+    end)
+  else
+    local fd_results = vim.fn.systemlist({ "fdfind", "--hidden", "--exclude", ".git" })
+    MiniPick.start({ source = { items = fd_results, name = "Files (fd)" } })
+  end
+end, { desc = "Search for file (remote-aware)" })
+
+-- opencode.nvim
+vim.o.autoread = true
+
+vim.g.opencode_opts = {
+  server = {
+    url = nil,
+    username = "opencode",
+  },
+  ask = {
+    prompt = "Ask opencode: ",
+  },
+}
+
+vim.keymap.set({ "n", "x" }, "<C-a>", function()
+  require("opencode").ask("@this: ", { submit = true })
+end, { desc = "Ask opencode" })
+vim.keymap.set({ "n", "x" }, "<C-x>", function()
+  require("opencode").select()
+end, { desc = "Select opencode" })
+vim.keymap.set({ "n", "t" }, "<C-.>", function()
+  require("opencode").toggle()
+end, { desc = "Toggle opencode" })
 
 require('nvim-web-devicons').setup()
 
@@ -354,9 +519,19 @@ require "nvim-treesitter".setup {
   ensure_installed = { "php", "html", "css", "javascript", "typescript" },
   indent = {
     enable = true,
-    disable = { "php" },
   },
 }
+
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'html', 'php', 'css', 'javascript', 'typescript' },
+  callback = function()
+    vim.treesitter.start()
+  end,
+})
+
+require("nvim-ts-autotag").setup({
+  filetypes = { "html", "xml", "php", "javascriptreact", "typescriptreact", "javascript", "typescript" },
+})
 require("nvim-treesitter-textobjects").setup {
   select = {
     -- Automatically jump forward to textobj, similar to targets.vim
@@ -394,10 +569,10 @@ vim.keymap.set('n', '<leader>u', require('undotree').toggle, { noremap = true, s
 
 require('grug-far').setup()
 
-vim.api.nvim_create_autocmd('FileType', {
-  pattern = { '<filetype>' },
-  callback = function() vim.treesitter.start() end,
-})
+-- vim.api.nvim_create_autocmd('FileType', {
+--   pattern = { '<filetype>' },
+--   callback = function() vim.treesitter.start() end,
+-- })
 
 vim.api.nvim_create_autocmd('LspAttach', {
   group = vim.api.nvim_create_augroup('my.lsp', {}),
@@ -411,7 +586,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
-vim.lsp.enable({ "lua_ls", "intelephense", "ts_ls", "gopls", "goimports", "emmet_ls" })
+vim.lsp.enable({ "lua_ls", "intelephense", "ts_ls", "gopls", "goimports" })
 
 vim.lsp.config("intelephense", {
   settings = {
@@ -451,11 +626,6 @@ vim.lsp.config("lua_ls", {
       }
     }
   }
-})
-
-vim.lsp.config("emmet_ls", {
-  cmd = { "emmet_ls", "--stdio" },
-  filetypes = {"php", "html", "css", "javascriptreact", "typescriptreact"}
 })
 
 vim.lsp.config("goimports", {
@@ -561,10 +731,6 @@ cmp.setup({
           vim.api.nvim_replace_termcodes('<Plug>(emmet-expand-abbr)', true, false, true),
           'n', true
         )
-        return
-      end
-      if cmp.visible() then
-        cmp.select_next_item()
       elseif luasnip.expand_or_jumpable() then
         luasnip.expand_or_jump()
       else
