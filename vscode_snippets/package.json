@@ -5,7 +5,12 @@
     "snippets": [
       {
         "language": [
-          "css"
+          " blade",
+          " html",
+          " sass",
+          " scss",
+          "css",
+          "php"
         ],
         "path": "./media.json"
       }

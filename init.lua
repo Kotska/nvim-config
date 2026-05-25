@@ -108,7 +108,8 @@ vim.pack.add({
 
   { src = "https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim" },
   { src = "https://github.com/rmagatti/auto-session" },
-  { src = "https://github.com/smjonas/snippet-converter.nvim" },
+  { src = "https://github.com/Joakker/lua-json5" },
+  { src = "https://github.com/Kotska/snippet-converter.nvim" },
   { src = "https://github.com/rafamadriz/friendly-snippets" },
   { src = "https://github.com/nvim-mini/mini.icons" },
   { src = "https://github.com/nvim-mini/mini.files" },
@@ -130,7 +131,7 @@ vim.pack.add({
   { src = "https://github.com/folke/which-key.nvim" },
   { src = "https://github.com/MagicDuck/grug-far.nvim" },
   { src = "https://github.com/nvim-lualine/lualine.nvim" },
-  { src = "https://github.com/karb94/neoscroll.nvim" },
+  -- { src = "https://github.com/karb94/neoscroll.nvim" },
   -- { src = "https://github.com/terryma/vim-expand-region" },
   { src = "https://github.com/wakatime/vim-wakatime" },
   -- Autocompletion
@@ -149,7 +150,11 @@ vim.pack.add({
 
 vim.cmd("colorscheme nightmare")
 -- vim.cmd("colorscheme spaceduck")
---
+
+local json5_dir = vim.fn.stdpath("data") .. "/site/pack/core/opt/lua-json5"
+if vim.fn.isdirectory(json5_dir) == 1 and vim.fn.filereadable(json5_dir .. "/lua/json5.so") == 0 then
+  vim.system({ json5_dir .. "/install.sh" }, { cwd = json5_dir })
+end
 
 require('mason-tool-installer').setup({
   ensure_installed = {
@@ -165,6 +170,8 @@ require("notify").setup({
   render = "wrapped-compact",
   stages = "static",
 })
+
+local notify = require("notify")
 
 require('render-markdown').setup()
 
@@ -240,11 +247,20 @@ vim.keymap.set('n', '<leader>rn', function()
   require("toggleterm").exec(term_cmd)
 end, { desc = 'Run current file in toggleterm' })
 
+local snippet_locations = {
+    "/home/dani/.var/app/com.vscodium.codium/config/VSCodium/User/snippets/media.code-snippets",
+    "/mnt/c/Users/Dani/AppData/Roaming/Code/User/snippets/media.code-snippets"
+}
+for i, path in ipairs(snippet_locations) do
+  if vim.fn.filereadable(path) == 0 then
+    snippet_locations[i] = nil
+  end
+end
 local template = {
   -- name = "t1", (optionally give your template a name to refer to it in the `ConvertSnippets` command)
   sources = {
     vscode = {
-      "/home/dani/.var/app/com.vscodium.codium/config/VSCodium/User/snippets/media.code-snippets",
+      unpack(snippet_locations)
     },
   },
   output = {
