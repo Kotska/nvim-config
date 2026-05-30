@@ -26,7 +26,7 @@ vim.o.autoindent = true
 vim.o.termguicolors = true
 vim.o.laststatus = 3
 vim.g.mason_node_path = "/usr/bin/node"
-vim.g.emmet_html_php = 1
+
 local initlua = vim.fn.stdpath('config') .. '/init.lua'
 
 vim.keymap.set("n", "<leader>o", "_f:<right>ct;<space>")
@@ -145,8 +145,6 @@ vim.pack.add({
   { src = "https://github.com/saadparwaiz1/cmp_luasnip" },
   { src = "https://github.com/MeanderingProgrammer/render-markdown.nvim" },
   { src = "https://github.com/stevearc/aerial.nvim" },
-  { src = "https://github.com/mattn/emmet-vim" },
-  { src = "/home/dani/Projects/cmp-emmet-vim" },
   { src = "https://github.com/windwp/nvim-ts-autotag" },
   { src = "https://github.com/nickjvandyke/opencode.nvim" },
   { src = "https://github.com/andymass/vim-matchup" },
@@ -183,6 +181,7 @@ require('mason-tool-installer').setup({
     "html-lsp",
     "typescript-language-server",
     "intelephense",
+    "emmet-language-server",
   }
 })
 
@@ -626,7 +625,13 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
-vim.lsp.enable({ "lua_ls", "intelephense", "ts_ls", "gopls", "goimports", "html" })
+vim.lsp.enable({ "lua_ls", "intelephense", "ts_ls", "gopls", "goimports", "html", "emmet_language_server" })
+
+vim.lsp.config("emmet_language_server", {
+  cmd = { "emmet-language-server", "--stdio" },
+  filetypes = { "css", "eruby", "html", "htmldjango", "javascriptreact", "less", "pug", "sass", "scss", "typescriptreact", "javascript", "typescript" },
+  root_markers = { ".git" },
+})
 
 vim.lsp.config("intelephense", {
   settings = {
@@ -773,11 +778,8 @@ cmp.setup({
       end
     end, { 'i', 's' }),
     ['<Tab>'] = cmp.mapping(function(fallback)
-      if vim.fn['emmet#isExpandable']() > 0 then
-        vim.api.nvim_feedkeys(
-          vim.api.nvim_replace_termcodes('<Plug>(emmet-expand-abbr)', true, false, true),
-          'n', true
-        )
+      if cmp.visible() then
+        cmp.confirm({ select = true })
       elseif luasnip.expand_or_jumpable() then
         luasnip.expand_or_jump()
       else
@@ -797,7 +799,6 @@ cmp.setup({
   sources = cmp.config.sources({
     { name = 'nvim_lsp' },
     { name = 'luasnip' },
-    { name = 'emmet_vim' },
   }, {
     { name = 'buffer' },
     { name = 'path' },
