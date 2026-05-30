@@ -146,7 +146,7 @@ vim.pack.add({
   { src = "https://github.com/MeanderingProgrammer/render-markdown.nvim" },
   { src = "https://github.com/stevearc/aerial.nvim" },
   { src = "https://github.com/mattn/emmet-vim" },
-  { src = "https://github.com/dcampos/cmp-emmet-vim" },
+  { src = "/home/dani/Projects/cmp-emmet-vim" },
   { src = "https://github.com/windwp/nvim-ts-autotag" },
   { src = "https://github.com/nickjvandyke/opencode.nvim" },
   { src = "https://github.com/andymass/vim-matchup" },
