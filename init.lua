@@ -1,3 +1,4 @@
+vim.o.shell = "/bin/sh"
 vim.o.shellcmdflag = "-ic"
 vim.o.shortmess = "filnxtToOFS"
 vim.o.winborder = "rounded"
@@ -25,7 +26,7 @@ vim.o.autoindent = true
 vim.o.termguicolors = true
 vim.o.laststatus = 3
 vim.g.mason_node_path = "/usr/bin/node"
-vim.g.emmet_html_php = 1
+
 local initlua = vim.fn.stdpath('config') .. '/init.lua'
 
 vim.keymap.set("n", "<leader>o", "_f:<right>ct;<space>")
@@ -36,6 +37,7 @@ vim.keymap.set('n', '<C-s>', ':write<cr>')
 vim.keymap.set('n', '<C-_>', 'gcc', { remap = true })
 vim.keymap.set('v', '<C-_>', 'gc', { remap = true })
 vim.keymap.set('i', 'jk', '<esc>')
+vim.keymap.set('v', '<leader>p', '"_dP', { noremap = true, silent = true })
 local function buf_skip_visible(direction)
   local visible = {}
   for _, win in ipairs(vim.api.nvim_list_wins()) do
@@ -108,7 +110,8 @@ vim.pack.add({
 
   { src = "https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim" },
   { src = "https://github.com/rmagatti/auto-session" },
-  { src = "https://github.com/smjonas/snippet-converter.nvim" },
+  { src = "https://github.com/Joakker/lua-json5" },
+  { src = "https://github.com/Kotska/snippet-converter.nvim" },
   { src = "https://github.com/rafamadriz/friendly-snippets" },
   { src = "https://github.com/nvim-mini/mini.icons" },
   { src = "https://github.com/nvim-mini/mini.files" },
@@ -130,7 +133,7 @@ vim.pack.add({
   { src = "https://github.com/folke/which-key.nvim" },
   { src = "https://github.com/MagicDuck/grug-far.nvim" },
   { src = "https://github.com/nvim-lualine/lualine.nvim" },
-  { src = "https://github.com/karb94/neoscroll.nvim" },
+  -- { src = "https://github.com/karb94/neoscroll.nvim" },
   -- { src = "https://github.com/terryma/vim-expand-region" },
   { src = "https://github.com/wakatime/vim-wakatime" },
   -- Autocompletion
@@ -142,21 +145,43 @@ vim.pack.add({
   { src = "https://github.com/saadparwaiz1/cmp_luasnip" },
   { src = "https://github.com/MeanderingProgrammer/render-markdown.nvim" },
   { src = "https://github.com/stevearc/aerial.nvim" },
-  { src = "https://github.com/mattn/emmet-vim" },
   { src = "https://github.com/windwp/nvim-ts-autotag" },
   { src = "https://github.com/nickjvandyke/opencode.nvim" },
+  { src = "https://github.com/andymass/vim-matchup" },
+  { src = "https://github.com/Shatur/neovim-ayu" },
 })
 
-vim.cmd("colorscheme nightmare")
--- vim.cmd("colorscheme spaceduck")
---
+-- vim.cmd("colorscheme nightmare")
+require('ayu').setup({
+    mirage = false, -- Set to `true` to use `mirage` variant instead of `dark` for dark background.
+    terminal = true, -- Set to `false` to let terminal manage its own colors.
+    overrides = {
+      Normal = { bg = "None" },
+      NormalFloat = { bg = "none" },
+      ColorColumn = { bg = "None" },
+      SignColumn = { bg = "None" },
+      Folded = { bg = "None" },
+      FoldColumn = { bg = "None" },
+      CursorLine = { bg = "None" },
+      CursorColumn = { bg = "None" },
+      VertSplit = { bg = "None" },
+    }, -- A dictionary of group names, each associated with a dictionary of parameters (`bg`, `fg`, `sp` and `style`) and colors in hex.
+})
+require('ayu').colorscheme()
+
+local json5_dir = vim.fn.stdpath("data") .. "/site/pack/core/opt/lua-json5"
+if vim.fn.isdirectory(json5_dir) == 1 and vim.fn.filereadable(json5_dir .. "/lua/json5.so") == 0 then
+  vim.system({ json5_dir .. "/install.sh" }, { cwd = json5_dir })
+end
 
 require('mason-tool-installer').setup({
   ensure_installed = {
     { 'gopls', condition = function() return vim.fn.executable('go') == 1 end },
     "lua-language-server",
+    "html-lsp",
     "typescript-language-server",
     "intelephense",
+    "emmet-language-server",
   }
 })
 
@@ -165,6 +190,8 @@ require("notify").setup({
   render = "wrapped-compact",
   stages = "static",
 })
+
+local notify = require("notify")
 
 require('render-markdown').setup()
 
@@ -241,11 +268,20 @@ vim.keymap.set('n', '<leader>rn', function()
   require("toggleterm").exec(term_cmd)
 end, { desc = 'Run current file in toggleterm' })
 
+local snippet_locations = {
+    "/home/dani/.var/app/com.vscodium.codium/config/VSCodium/User/snippets/media.code-snippets",
+    "/mnt/c/Users/Dani/AppData/Roaming/Code/User/snippets/media.code-snippets"
+}
+for i, path in ipairs(snippet_locations) do
+  if vim.fn.filereadable(path) == 0 then
+    snippet_locations[i] = nil
+  end
+end
 local template = {
   -- name = "t1", (optionally give your template a name to refer to it in the `ConvertSnippets` command)
   sources = {
     vscode = {
-      "/home/dani/.var/app/com.vscodium.codium/config/VSCodium/User/snippets/media.code-snippets",
+      unpack(snippet_locations)
     },
   },
   output = {
@@ -304,7 +340,7 @@ require('mini.files').setup({
 })
 require('mini.pick').setup()
 require('mini.extra').setup()
-vim.keymap.set("n", "<leader>ol", function()
+vim.keymap.set("n", "<leader>fl", function()
   MiniExtra.pickers.oldfiles()
 end)
 
@@ -533,6 +569,9 @@ vim.api.nvim_create_autocmd('FileType', {
 require("nvim-ts-autotag").setup({
   filetypes = { "html", "xml", "php", "javascriptreact", "typescriptreact", "javascript", "typescript" },
 })
+
+vim.g.matchup_matchparen_deferred = 1
+vim.g.matchup_matchparen_offscreen = { method = "popup" }
 require("nvim-treesitter-textobjects").setup {
   select = {
     -- Automatically jump forward to textobj, similar to targets.vim
@@ -587,11 +626,20 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
-vim.lsp.enable({ "lua_ls", "intelephense", "ts_ls", "gopls", "goimports" })
+vim.lsp.enable({ "lua_ls", "intelephense", "ts_ls", "gopls", "goimports", "html", "emmet_language_server" })
+
+vim.lsp.config("emmet_language_server", {
+  cmd = { "emmet-language-server", "--stdio" },
+  filetypes = { "css", "eruby", "html", "htmldjango", "javascriptreact", "less", "pug", "sass", "scss", "typescriptreact", "javascript", "typescript" },
+  root_markers = { ".git" },
+})
 
 vim.lsp.config("intelephense", {
   settings = {
     intelephense = {
+      format = {
+        braces = "k&r",
+      },
       stubs = {
         "apache", "bcmath", "bz2", "calendar", "com_dotnet", "Core",
         "ctype", "curl", "date", "dba", "dom", "enchant", "exif",
@@ -731,11 +779,8 @@ cmp.setup({
       end
     end, { 'i', 's' }),
     ['<Tab>'] = cmp.mapping(function(fallback)
-      if vim.fn['emmet#isExpandable']() > 0 then
-        vim.api.nvim_feedkeys(
-          vim.api.nvim_replace_termcodes('<Plug>(emmet-expand-abbr)', true, false, true),
-          'n', true
-        )
+      if cmp.visible() then
+        cmp.confirm({ select = true })
       elseif luasnip.expand_or_jumpable() then
         luasnip.expand_or_jump()
       else
@@ -781,3 +826,5 @@ cmp.setup.cmdline('/', {
     { name = 'buffer' }
   }
 })
+
+require('ftp-scratch').setup()
