@@ -212,10 +212,11 @@ require("toggleterm").setup({
     border = "rounded",
   },
   on_open = function(term)
-    vim.keymap.set("t", "<Esc>", "<C-\\><C-n>", { buffer = term.bufnr })
+    vim.keymap.set("t", "<Esc>", "<C-\\><C-n>", { buffer = term.bufnr, nowait = true })
   end,
 })
 
+vim.keymap.set("t", "<Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 vim.keymap.set({ "n", "t" }, "<leader>tt", "<cmd>ToggleTerm<cr>", { desc = "Toggle terminal" })
 
 local function get_runner_cmd()
