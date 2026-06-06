@@ -1,11 +1,16 @@
-vim.o.shell = "/bin/sh"
+if not vim.fn.has('win32') then
+  vim.o.shell = "/bin/sh"
+  vim.g.mason_node_path = "/usr/bin/node"
+end
+
 vim.o.shellcmdflag = "-ic"
 vim.o.shortmess = "filnxtToOFS"
 vim.o.winborder = "rounded"
 vim.o.showmode = false
 vim.o.number = true
 vim.o.relativenumber = true
-vim.o.wrap = false
+vim.o.wrap = true
+vim.o.linebreak = true
 vim.o.tabstop = 2
 vim.o.shiftwidth = 2
 vim.o.swapfile = false
@@ -25,14 +30,13 @@ vim.o.backupcopy = "yes"
 vim.o.autoindent = true
 vim.o.termguicolors = true
 vim.o.laststatus = 3
-vim.g.mason_node_path = "/usr/bin/node"
 
-local initlua = vim.fn.stdpath('config') .. '/init.lua'
-
+vim.keymap.set('n', '<leader>v', '<C-v>')
+vim.keymap.set({ 'n', 'x' }, 'j', 'gj')
+vim.keymap.set({ 'n', 'x' }, 'k', 'gk')
 vim.keymap.set("n", "<leader>o", "_f:<right>ct;<space>")
 vim.keymap.set("n", "<leader>ls", vim.lsp.buf.document_symbol, { desc = "LSP document symbols" })
 vim.keymap.set('n', '<leader>so', ':update<cr> :so<cr>', { desc = "Source current config file" })
-vim.keymap.set('n', '<leader>sv', ':luafile ' .. initlua .. '<cr>', { desc = "Source config file" })
 vim.keymap.set('n', '<C-s>', ':write<cr>')
 vim.keymap.set('n', '<C-_>', 'gcc', { remap = true })
 vim.keymap.set('v', '<C-_>', 'gc', { remap = true })
@@ -136,6 +140,7 @@ vim.pack.add({
   -- { src = "https://github.com/karb94/neoscroll.nvim" },
   -- { src = "https://github.com/terryma/vim-expand-region" },
   { src = "https://github.com/wakatime/vim-wakatime" },
+  { src = "https://github.com/olrtg/nvim-emmet" },
   -- Autocompletion
   { src = "https://github.com/hrsh7th/nvim-cmp" },
   { src = "https://github.com/hrsh7th/cmp-nvim-lsp" },
@@ -162,7 +167,6 @@ require('ayu').setup({
       SignColumn = { bg = "None" },
       Folded = { bg = "None" },
       FoldColumn = { bg = "None" },
-      CursorLine = { bg = "None" },
       CursorColumn = { bg = "None" },
       VertSplit = { bg = "None" },
     }, -- A dictionary of group names, each associated with a dictionary of parameters (`bg`, `fg`, `sp` and `style`) and colors in hex.
@@ -182,6 +186,7 @@ require('mason-tool-installer').setup({
     "typescript-language-server",
     "intelephense",
     "emmet-language-server",
+    "css-lsp",
   }
 })
 
@@ -559,6 +564,13 @@ require "nvim-treesitter".setup {
 }
 
 vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'css',
+  callback = function()
+    vim.opt_local.formatoptions:remove({ 'r', 'o' })
+  end,
+})
+
+vim.api.nvim_create_autocmd('FileType', {
   pattern = { 'html', 'php', 'css', 'javascript', 'typescript' },
   callback = function()
     vim.treesitter.start()
@@ -567,6 +579,11 @@ vim.api.nvim_create_autocmd('FileType', {
 
 require("nvim-ts-autotag").setup({
   filetypes = { "html", "xml", "php", "javascriptreact", "typescriptreact", "javascript", "typescript" },
+  opts = {
+    enable_close = true, -- Auto close tags
+    enable_rename = true, -- Auto rename pairs of tags
+    enable_close_on_slash = false -- Auto close on trailing </
+  },
 })
 
 vim.g.matchup_matchparen_deferred = 1
@@ -600,6 +617,12 @@ vim.keymap.set({ "x", "o" }, "as", function()
   require "nvim-treesitter-textobjects.select".select_textobject("@local.scope", "locals")
 end)
 
+vim.keymap.set({ "n", "v" }, '<leader>xe', require('nvim-emmet').wrap_with_abbreviation, { desc = "Emmet wrap with abbreviation" })
+vim.keymap.set("i", "<C-e>", function()
+  local emmet = require("nvim-emmet")
+  return emmet.expand and emmet.expand() or "<C-e>"
+end, { expr = true, desc = "Emmet expand abbreviation" })
+
 vim.keymap.set("n", "<leader>?", function()
   require("which-key").show({ global = true })
 end, { desc = "Buffer Local Keymaps (which-key)" })
@@ -625,13 +648,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
-vim.lsp.enable({ "lua_ls", "intelephense", "ts_ls", "gopls", "goimports", "html", "emmet_language_server" })
-
-vim.lsp.config("emmet_language_server", {
-  cmd = { "emmet-language-server", "--stdio" },
-  filetypes = { "css", "eruby", "html", "htmldjango", "javascriptreact", "less", "pug", "sass", "scss", "typescriptreact", "javascript", "typescript" },
-  root_markers = { ".git" },
-})
+vim.lsp.enable({ "lua_ls", "intelephense", "ts_ls", "gopls", "goimports", "html", "cssls" })
 
 vim.lsp.config("intelephense", {
   settings = {

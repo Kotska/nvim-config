@@ -22,7 +22,7 @@
   "Hide scrollbar": {
     "prefix": "scrollhide",
     "description": "Hide scrollbar",
-    "scope": "css, scss, sass",
+    "scope": "css,scss,sass",
     "body": [
       "-ms-overflow-style: none;",
       "scrollbar-width: none;"
@@ -40,13 +40,13 @@
   "Media Query Max": {
     "prefix": "@mdx",
     "description": "Media Query for css rules",
-    "scope": "css, scss, sass",
+    "scope": "css,scss,sass",
     "body": "@media screen and (max-width: $1 ) {$2\\}"
   },
   "Media Query Min": {
     "prefix": "@md",
     "description": "Media Query for css rules",
-    "scope": "css, scss, sass",
+    "scope": "css,scss,sass",
     "body": "@media screen and (min-width: $1 ) {$2\\}"
   },
   "Ob error log": {
@@ -62,17 +62,17 @@
   "Open/close php tag with echo": {
     "prefix": "@peco",
     "description": "For quick php echo",
-    "scope": "php, html",
+    "scope": "php,html",
     "body": "<?php echo $1 ?>"
   },
   "Retina image css": {
     "prefix": "@retina",
-    "scope": "css, scss, sass",
+    "scope": "css,scss,sass",
     "body": "background-image: image-set( url('$1') 1x, url('$2') 2x);"
   },
   "Swiper php": {
     "prefix": "swiper",
-    "scope": "php, html, blade",
+    "scope": "php,html,blade",
     "body": [
       "<div class='swiper'>",
       "<div class='swiper-wrapper'>",
@@ -117,7 +117,7 @@
   },
   "foreach": {
     "prefix": "for",
-    "scope": "php, html",
+    "scope": "php,html",
     "body": [
       "<?php foreach($1) : ?>",
       "\t$2",
@@ -126,7 +126,7 @@
   },
   "if": {
     "prefix": "if",
-    "scope": "php, html",
+    "scope": "php,html",
     "body": [
       "<?php if ($1) { ?>",
       "\t$TM_SELECTED_TEXT",
@@ -135,7 +135,7 @@
   },
   "ifempty": {
     "prefix": "ifempty",
-    "scope": "php, html",
+    "scope": "php,html",
     "body": [
       "<?php if(!empty($1)): ?>",
       "$1",

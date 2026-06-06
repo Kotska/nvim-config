@@ -5,12 +5,12 @@
     "snippets": [
       {
         "language": [
-          " blade",
-          " html",
-          " sass",
-          " scss",
+          "blade",
           "css",
-          "php"
+          "html",
+          "php",
+          "sass",
+          "scss"
         ],
         "path": "./media.json"
       }
