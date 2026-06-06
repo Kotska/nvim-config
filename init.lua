@@ -173,11 +173,6 @@ require('ayu').setup({
 })
 require('ayu').colorscheme()
 
-local json5_dir = vim.fn.stdpath("data") .. "/site/pack/core/opt/lua-json5"
-if vim.fn.isdirectory(json5_dir) == 1 and vim.fn.filereadable(json5_dir .. "/lua/json5.so") == 0 then
-  vim.system({ json5_dir .. "/install.sh" }, { cwd = json5_dir })
-end
-
 require('mason-tool-installer').setup({
   ensure_installed = {
     { 'gopls', condition = function() return vim.fn.executable('go') == 1 end },
