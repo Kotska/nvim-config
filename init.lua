@@ -273,28 +273,32 @@ local snippet_locations = {
     "/mnt/c/Users/Dani/AppData/Roaming/Code/User/snippets/media.code-snippets"
 }
 for i, path in ipairs(snippet_locations) do
-  if vim.fn.filereadable(path) == 0 then
+  if not vim.fn.filereadable(path) then
     snippet_locations[i] = nil
   end
 end
-local template = {
-  -- name = "t1", (optionally give your template a name to refer to it in the `ConvertSnippets` command)
-  sources = {
-    vscode = {
-      unpack(snippet_locations)
+
+if not next(snippet_locations) == nil then
+  local template = {
+    -- name = "t1", (optionally give your template a name to refer to it in the `ConvertSnippets` command)
+    sources = {
+      vscode = {
+        unpack(snippet_locations)
+      },
     },
-  },
-  output = {
-    -- Specify the output formats and paths
-    vscode_luasnip = {
-      vim.fn.stdpath("config") .. "/vscode_snippets",
+    output = {
+      -- Specify the output formats and paths
+      vscode_luasnip = {
+        vim.fn.stdpath("config") .. "/vscode_snippets",
+      },
     },
-  },
-}
--- run - :ConvertSnippets
-require("snippet_converter").setup({
-  templates = { template },
-})
+  }
+  -- run - :ConvertSnippets
+  require("snippet_converter").setup({
+    templates = { template },
+  })
+end
+
 require("luasnip.loaders.from_vscode").lazy_load()
 require("luasnip.loaders.from_vscode").lazy_load({
   paths = "./vscode_snippets",
@@ -839,4 +843,23 @@ cmp.setup.cmdline('/', {
   }
 })
 
-require('ftp-scratch').setup()
+--- Check if a file or directory exists in this path
+function exists(file)
+   local ok, err, code = os.rename(file, file)
+   if not ok then
+      if code == 13 then
+         -- Permission denied, but it exists
+         return true
+      end
+   end
+   return ok, err
+end
+
+function isdir(path)
+   -- "/" works on both Unix and Windows
+   return exists(path.."/")
+end
+
+if isdir(vim.fn.stdpath("config") .. "/pack/local/start/ftp-scratch") then
+  require('ftp-scratch').setup()
+end
