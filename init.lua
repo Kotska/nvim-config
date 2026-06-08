@@ -1,4 +1,6 @@
-if not vim.fn.has('win32') then
+if vim.fn.has('win32') then
+  vim.env.CC = "gcc"
+else
   vim.o.shell = "/bin/sh"
   vim.g.mason_node_path = "/usr/bin/node"
 end
@@ -557,7 +559,7 @@ wk.add({
 vim.keymap.set({ "n", "v" }, '<leader>sr', ':GrugFar<cr>', { desc = "Search/Replace" })
 
 require "nvim-treesitter".setup {
-  ensure_installed = { "php", "html", "css", "javascript", "typescript" },
+  ensure_installed = { "php", "html", "css", "javascript", "typescript", "blade" },
   indent = {
     enable = true,
   },
@@ -571,7 +573,7 @@ vim.api.nvim_create_autocmd('FileType', {
 })
 
 vim.api.nvim_create_autocmd('FileType', {
-  pattern = { 'html', 'php', 'css', 'javascript', 'typescript' },
+  pattern = { 'html', 'php', 'css', 'javascript', 'typescript', 'blade' },
   callback = function()
     vim.treesitter.start()
   end,
@@ -648,7 +650,19 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
-vim.lsp.enable({ "lua_ls", "intelephense", "ts_ls", "gopls", "goimports", "html", "cssls" })
+vim.lsp.config("laravel_ls", {
+  cmd = { "laravel-ls" },
+  filetypes = { "php", "blade" },
+  root_markers = { "artisan", "composer.json" },
+})
+
+vim.lsp.enable({ "lua_ls", "intelephense", "ts_ls", "gopls", "goimports", "html", "cssls", "laravel_ls" })
+
+vim.filetype.add({
+  pattern = {
+    ['.*%.blade%.php'] = 'blade',
+  },
+})
 
 vim.lsp.config("intelephense", {
   settings = {
