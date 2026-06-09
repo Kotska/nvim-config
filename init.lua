@@ -495,7 +495,8 @@ vim.keymap.set('n', '<leader>fd', function()
       end)
     end)
   else
-    local fd_results = vim.fn.systemlist({ "fdfind", "--hidden", "--exclude", ".git" })
+    local fd_cmd = vim.fn.has('win32') and "fd" or "fdfind"
+    local fd_results = vim.fn.systemlist({ fd_cmd, "--hidden", "--exclude", ".git" })
     MiniPick.start({ source = { items = fd_results, name = "Files (fd)" } })
   end
 end, { desc = "Search for file (remote-aware)" })
@@ -552,7 +553,15 @@ wk.add({
   { "<C-l>",      "<C-w>l",           desc = "Window Right" },
   { "<leader>y",  '"+y',              mode = { 'n', 'v', 'x' }, hidden = true },
   { '<leader>q',  ':quit<cr>',        hidden = true },
-  { '<leader>lf', vim.lsp.buf.format, desc = "Format" }
+  { '<leader>lf', function()
+    if vim.bo.filetype == 'blade' then
+      vim.cmd('write')
+      vim.cmd('!blade-formatter --write %')
+      vim.cmd('edit')
+    else
+      vim.lsp.buf.format()
+    end
+  end, desc = "Format" }
 })
 
 
